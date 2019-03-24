@@ -10,6 +10,7 @@ class tomorectv3d
 	size_t Nzp;	
 	float tau;
 	float lambda;
+	float center;
 	
 	//number of gpus
 	size_t ngpus;
@@ -42,14 +43,15 @@ class tomorectv3d
 	void updateft(float* ftn, float* fn, float* f, int igpu, cudaStream_t s);	
     
   public:
-	tomorectv3d(size_t N, size_t Ntheta, size_t Nz, size_t Nzp,
-		  size_t ngpus, float lambda);
+	tomorectv3d(size_t N, size_t Ntheta, size_t Nz, size_t Nzp, 
+		  size_t ngpus, float center, float lambda);
 	~tomorectv3d();
 	void itertvR(float *fres,float *g, size_t niter);
 	void radonmany(float *gres_, float *f_);
-	void radonmanyadj(float *fres_, float *g_);
-	void settheta(float* theta_, int N1);
-    void itertvR_wrap(float *fres, int N0, float *g_, int N1, size_t niter);
-	void radon_wrap(float *gres_, int N0, float *f_, int N1);
-	void radonadj_wrap(float *fres_, int N0, float *g_, int N1);
+	void radonmanyadj(float* fres, float *g_);
+	
+	void settheta(size_t theta);
+    void itertvR_wrap(size_t fres, size_t g, size_t niter);
+	void radon_wrap(size_t gres, size_t f);
+	void radonadj_wrap(size_t fres, size_t g);
 };

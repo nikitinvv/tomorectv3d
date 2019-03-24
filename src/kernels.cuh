@@ -157,10 +157,9 @@ void __global__ mulc(float2 *g, float c, int N, int Ntheta, int Nz)
         int tx = blockDim.x * blockIdx.x + threadIdx.x;
         int ty = blockDim.y * blockIdx.y + threadIdx.y;
         int tz = blockDim.z * blockIdx.z + threadIdx.z;
-	if (tx>=N||ty>=Ntheta||tz>=Nz) return;
-	
-        g[tx+ty*N+tz*N*Ntheta].x *= c;
-        g[tx+ty*N+tz*N*Ntheta].y *= c;
+	if (tx>=N||ty>=Ntheta||tz>=Nz) return;	
+        g[tx+ty*N+tz*N*Ntheta].x *= c;//*g0.x*cos(2*PI*(center-N/2)*tx/N)-c*g0.y*sin(2*PI*(center-N/2)*tx/N);
+        g[tx+ty*N+tz*N*Ntheta].y *= c;//*g0.x*sin(2*PI*(center-N/2)*tx/N)+c*g0.y*cos(2*PI*(center-N/2)*tx/N);
 }
 
 void __global__ mulr(float *g, float c, int N, int Nz)
@@ -301,3 +300,4 @@ void __global__ radonadj(float2 *f, float2 *g, float* theta, int N, int Ntheta, 
 	f[tx+ty*N+tz*N*N].x=f0.x*1.0f/(sqrtf((float)N*Ntheta));
 	f[tx+ty*N+tz*N*N].y=f0.y*1.0f/(sqrtf((float)N*Ntheta));
 }
+

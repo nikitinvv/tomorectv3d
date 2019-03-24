@@ -22,7 +22,7 @@ class tomorectv3d
 	size_t Nzp;	
 	float tau;
 	float lambda;
-
+	float center;
 	//number of gpus
 	size_t ngpus;
 
@@ -54,22 +54,16 @@ class tomorectv3d
 
   public:
 	tomorectv3d(size_t N, size_t Ntheta, size_t Nz, size_t Nzp,
-		  size_t ngpus, float lambda);
+		  size_t ngpus,float center, float lambda);
 	~tomorectv3d();
 	void itertvR(float *fres,float *g, size_t niter);
-    void radonmany(float *gres_, float *f_);
-	void radonmanyadj(float *gres_, float *f_);
-%apply (float* IN_ARRAY1, int DIM1) {(float* theta_, int N1)};
-	void settheta(float* theta_, int N1);
-%apply (float* INPLACE_ARRAY1, int DIM1) {(float* fres, int N0)};
-%apply (float* IN_ARRAY1, int DIM1) {(float* g_, int N1)};
-	void itertvR_wrap(float *fres, int N0, float *g_, int N1, size_t niter);
+    void radonmany(float *gres, float *f);
+	void radonmanyadj(float *gres, float *f);
 
-%apply (float* INPLACE_ARRAY1, int DIM1) {(float* gres, int N2)};
-%apply (float* IN_ARRAY1, int DIM1) {(float* f, int N3)};
-    void radon_wrap(float *gres, int N2, float *f, int N3);
-%apply (float* INPLACE_ARRAY1, int DIM1) {(float* fres, int N2)};
-%apply (float* IN_ARRAY1, int DIM1) {(float* g, int N3)};
-    void radonadj_wrap(float *fres, int N2, float *g, int N3);
+	void settheta(size_t theta);
+	void itertvR_wrap(size_t fres, size_t g, size_t niter);
+
+    void radon_wrap(size_t gres, size_t f);
+    void radonadj_wrap(size_t fres, size_t g);
 
 };

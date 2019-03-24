@@ -3,13 +3,14 @@
 #include "tomorectv3d.cuh"
 #include "kernels.cuh"
 
-tomorectv3d::tomorectv3d(size_t N_, size_t Ntheta_, size_t Nz_, size_t Nzp_, size_t ngpus_,float lambda_)
+tomorectv3d::tomorectv3d(size_t N_, size_t Ntheta_, size_t Nz_, size_t Nzp_, size_t ngpus_, float center_, float lambda_)
 {
 	N = N_;
 	Ntheta = Ntheta_;	
 	Nz = Nz_;
 	Nzp = Nzp_;	
 	lambda = lambda_;	
+	center = center_;
 	ngpus = min(ngpus_,(size_t)(Nz/Nzp));
 	tau=1/sqrt(2+(Nz!=0)); 
 	omp_set_num_threads(ngpus);	
@@ -38,7 +39,7 @@ tomorectv3d::tomorectv3d(size_t N_, size_t Ntheta_, size_t Nz_, size_t Nzp_, siz
 	for (int igpu=0;igpu<ngpus;igpu++)
 	{
 		cudaSetDevice(igpu);
-		rad[igpu] = new radonusfft(N,Ntheta,Nzp);
+		rad[igpu] = new radonusfft(N,Ntheta,Nzp,center);
 		cudaMalloc((void**)&ftmp[igpu],2*(N+2)*(N+2)*(Nzp+2)*sizeof(float));
 		cudaMalloc((void**)&gtmp[igpu],2*N*Ntheta*Nzp*sizeof(float));    
 		cudaMalloc((void**)&ftmps[igpu],2*N*N*Nzp*sizeof(float));
@@ -90,7 +91,7 @@ void tomorectv3d::radon(float *g, float* f, int igpu, cudaStream_t s)
 	makecomplexf<<<GS3d0,BS3d,0,s>>>(ftmp0,f,N,Nzp);	
 	rad[igpu]->fwdR(gtmp0,ftmp0,theta0,s);
 	mulc<<<GS3d2,BS3d,0,s>>>(gtmp0,sqrt(PI),N,Ntheta,Nzp);
-	addg<<<GS3d2,BS3d,0,s>>>(g,gtmp0,tau,N,Ntheta,Nzp);        
+	addg<<<GS3d2,BS3d,0,s>>>(g,gtmp0,tau,N,Ntheta,Nzp);        	
 }
 
 
@@ -113,9 +114,9 @@ void tomorectv3d::radonadj(float *f, float* g, int igpu, cudaStream_t s)
 	dim3 GS3d1(ceil(N/(float)BS3d.x),ceil(N/(float)BS3d.y),ceil(Nzp/(float)BS3d.z));    
 	dim3 GS3d2(ceil(N/(float)BS3d.x),ceil(Ntheta/(float)BS3d.y),ceil(Nzp/(float)BS3d.z));    
 	
-	//switch to complex numbers
+	//switch to complex numbers	
 	makecomplexR<<<GS3d2,BS3d,0,s>>>(gtmp0,g,N,Ntheta,Nzp);
-	//constant for normalization
+	//constant for normalization and shift
 	mulc<<<GS3d2,BS3d,0,s>>>(gtmp0,sqrt(PI),N,Ntheta,Nzp);
 	//gather Radon data over all angles
 	cudaMemsetAsync(gtmps0,0,2*N*Ntheta*Nzp*sizeof(float),s);
@@ -539,26 +540,26 @@ void tomorectv3d::radonmanyadj(float *fres_, float *g_)
 }
 
 
-void tomorectv3d::settheta(float* theta_, int N1)
+void tomorectv3d::settheta(size_t theta_)
 {
 	for (int igpu=0;igpu<ngpus;igpu++)
 	{
 		cudaSetDevice(igpu);
-		cudaMemcpy(theta[igpu],theta_,Ntheta*sizeof(float),cudaMemcpyDefault);
+		cudaMemcpy(theta[igpu],(float*)theta_,Ntheta*sizeof(float),cudaMemcpyDefault);
 	}
 }
 
-void tomorectv3d::itertvR_wrap(float *fres, int N0, float *g_, int N1, size_t niter)
+void tomorectv3d::itertvR_wrap(size_t fres, size_t g, size_t niter)
 {
-	itertvR(fres,g_,niter);
+	itertvR((float*)fres,(float*)g,niter);
 }
 
-void tomorectv3d::radon_wrap(float *gres, int N0, float *f, int N1)
+void tomorectv3d::radon_wrap(size_t gres, size_t f)
 {
-	radonmany(gres,f);
+	radonmany((float*)gres,(float*)f);
 }
 
-void tomorectv3d::radonadj_wrap(float *fres, int N0, float *g, int N1)
+void tomorectv3d::radonadj_wrap(size_t fres, size_t g)
 {
-	radonmanyadj(fres,g);
+	radonmanyadj((float*)fres,(float*)g);
 }

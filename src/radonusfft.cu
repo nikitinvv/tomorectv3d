@@ -2,11 +2,12 @@
 #include "kernels_radonusfft.cuh"
 #include <stdio.h>
 
-radonusfft::radonusfft(size_t N_, size_t Ntheta_, size_t Nz_)
+radonusfft::radonusfft(size_t N_, size_t Ntheta_, size_t Nz_, float center_)
 {
 	N = N_;
 	Ntheta = Ntheta_;
 	Nz = Nz_;
+	center = center_;
 	float eps = 1e-6;
 	mu = -log(eps)/(2*N*N);
 	M = ceil(2*N*1/PI*sqrt(-mu*log(eps)+(mu*N)*(mu*N)/4));
@@ -69,13 +70,14 @@ void radonusfft::fwdR(float2* g_, float2* f_, float* theta_, cudaStream_t s)
 
 	wrap<<<GS3d2, BS3d,0,s>>>(fde,N,Nz,M);
 	gather<<<GS3d3, BS3d,0,s>>>(g,fde,x,y,M,mu,N,Ntheta,Nz);
-
+	mulr<<<GS3d3,BS3d,0,s>>>(g,1.0f/(4*N*N*N*sqrt(N*Ntheta)),-center,N,Ntheta,Nz);
+	
 	fftshift1c<<<GS3d3, BS3d,0,s>>>(g,N,Ntheta,Nz);
 	cufftSetStream(plan1d,s);
 	cufftExecC2C(plan1d, (cufftComplex*)g,(cufftComplex*)g,CUFFT_INVERSE);
 	fftshift1c<<<GS3d3, BS3d,0,s>>>(g,N,Ntheta,Nz);
 
-	mulr<<<GS3d3,BS3d,0,s>>>(g,1.0f/(4*N*N*N*sqrt(N*Ntheta)),N,Ntheta,Nz);
+	
 	cudaMemcpyAsync(g_,g,N*Ntheta*Nz*sizeof(float2),cudaMemcpyDefault,s);  	
 }
 
@@ -103,6 +105,7 @@ void radonusfft::adjR(float2* f_, float2* g_, float* theta_, bool filter, cudaSt
 	fftshift1c<<<GS3d3, BS3d,0,s>>>(g,N,Ntheta,Nz);
 
 	if(filter) applyfilter<<<GS3d3, BS3d,0,s>>>(g,N,Ntheta,Nz);
+	mulr<<<GS3d3,BS3d,0,s>>>(g,1.0f/(4*N*N*N*sqrt(N*Ntheta)),center,N,Ntheta,Nz);
 
 	scatter<<<GS3d3, BS3d,0,s>>>(fde,g,x,y,M,mu,N,Ntheta,Nz);
 	wrapadj<<<GS3d2, BS3d,0,s>>>(fde,N,Nz,M);
@@ -113,7 +116,7 @@ void radonusfft::adjR(float2* f_, float2* g_, float* theta_, bool filter, cudaSt
 	fftshiftc<<<GS3d2, BS3d,0,s>>>(fde,2*N+2*M,Nz);
 
 	unpaddivphi<<<GS3d0, BS3d,0,s>>>(f,fde,mu,M,N,Nz);
-	mulr<<<GS3d0,BS3d,0,s>>>(f,1.0f/(4*N*N*N*sqrt(N*Ntheta)),N,N,Nz);
+	// mulr<<<GS3d0,BS3d,0,s>>>(f,1.0f/(4*N*N*N*sqrt(N*Ntheta)),N,N,Nz);
 
 	cudaMemcpyAsync(f_,f,N*N*Nz*sizeof(float2),cudaMemcpyDefault,s);
 }

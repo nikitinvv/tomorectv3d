@@ -8,6 +8,7 @@ class radonusfft
 	size_t Nz;
 	size_t M;
 	float mu;
+	float center;
 	
 	float2 *f;
 	float2 *g;
@@ -22,7 +23,7 @@ class radonusfft
 	cufftHandle plan1d;
 
 public:
-	radonusfft(size_t N, size_t Ntheta, size_t Nz);
+	radonusfft(size_t N, size_t Ntheta, size_t Nz, float center);
 	~radonusfft();	
 	void fwdR(float2 *g, float2 *f, float *theta, cudaStream_t s);
 	void adjR(float2 *f, float2 *g, float *theta, bool filter, cudaStream_t s);
