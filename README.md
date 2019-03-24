@@ -14,3 +14,5 @@ python setup.py install
 #Run test 
 
 python test.py
+
+#try different regularization parameter lambda to check tv regularization
