@@ -181,15 +181,17 @@ void __global__ circ(float2 *f, float r, int N, int Nz)
 	f[id0].y *= lam;
 }
 
-void __global__ mulr(float2 *f, float r, float center, int N, int Ntheta, int Nz)
+void __global__ mulr(float2 *f, float r, float shift, int N, int Ntheta, int Nz)
 {
 	int tx = blockDim.x * blockIdx.x + threadIdx.x;
 	int ty = blockDim.y * blockIdx.y + threadIdx.y;
 	int tz = blockDim.z * blockIdx.z + threadIdx.z;
 	if (tx>=N||ty>=Ntheta||tz>=Nz) return;
-	float2 f0 = f[tx+ty*N+tz*Ntheta*N];	
-	f[tx+ty*N+tz*N*Ntheta].x = r*f0.x*cos(2*PI*(center-N/2)*tx/N)-r*f0.y*sin(2*PI*(center-N/2)*tx/N);
-	f[tx+ty*N+tz*N*Ntheta].y = r*f0.x*sin(2*PI*(center-N/2)*tx/N)+r*f0.y*cos(2*PI*(center-N/2)*tx/N);
+	float2 f0;
+	f0.x = f[tx+ty*N+tz*N*Ntheta].x;
+	f0.y = f[tx+ty*N+tz*N*Ntheta].y;	
+	f[tx+ty*N+tz*N*Ntheta].x = r*f0.x*__cosf(2*PI*shift*(tx-N/2)/N)-r*f0.y*__sinf(2*PI*shift*(tx-N/2)/N);
+	f[tx+ty*N+tz*N*Ntheta].y = r*f0.x*__sinf(2*PI*shift*(tx-N/2)/N)+r*f0.y*__cosf(2*PI*shift*(tx-N/2)/N);
 }
 
 void __global__ applyfilter(float2 *f, int N, int Ntheta, int Nz)

@@ -38,7 +38,7 @@ radonusfft::radonusfft(size_t N_, size_t Ntheta_, size_t Nz_, float center_)
 radonusfft::~radonusfft()
 {	
 	cudaFree(f);
-	cudaFree(g);
+	cudaFree(g);	
 	cudaFree(fde);
 	cudaFree(x);
 	cudaFree(y);
@@ -70,8 +70,8 @@ void radonusfft::fwdR(float2* g_, float2* f_, float* theta_, cudaStream_t s)
 
 	wrap<<<GS3d2, BS3d,0,s>>>(fde,N,Nz,M);
 	gather<<<GS3d3, BS3d,0,s>>>(g,fde,x,y,M,mu,N,Ntheta,Nz);
-	mulr<<<GS3d3,BS3d,0,s>>>(g,1.0f/(4*N*N*N*sqrt(N*Ntheta)),-center,N,Ntheta,Nz);
-	
+	mulr<<<GS3d3,BS3d,0,s>>>(g,1.0f/(4*N*N*N*sqrt(N*Ntheta)),-(center-N/2),N,Ntheta,Nz);
+		
 	fftshift1c<<<GS3d3, BS3d,0,s>>>(g,N,Ntheta,Nz);
 	cufftSetStream(plan1d,s);
 	cufftExecC2C(plan1d, (cufftComplex*)g,(cufftComplex*)g,CUFFT_INVERSE);
@@ -104,8 +104,8 @@ void radonusfft::adjR(float2* f_, float2* g_, float* theta_, bool filter, cudaSt
 	cufftExecC2C(plan1d, (cufftComplex*)g,(cufftComplex*)g,CUFFT_FORWARD);
 	fftshift1c<<<GS3d3, BS3d,0,s>>>(g,N,Ntheta,Nz);
 
-	if(filter) applyfilter<<<GS3d3, BS3d,0,s>>>(g,N,Ntheta,Nz);
-	mulr<<<GS3d3,BS3d,0,s>>>(g,1.0f/(4*N*N*N*sqrt(N*Ntheta)),center,N,Ntheta,Nz);
+	if(filter) applyfilter<<<GS3d3, BS3d,0,s>>>(g,N,Ntheta,Nz);	
+	mulr<<<GS3d3,BS3d,0,s>>>(g,1.0f/(4*N*N*N*sqrt(N*Ntheta)),(center-N/2),N,Ntheta,Nz);
 
 	scatter<<<GS3d3, BS3d,0,s>>>(fde,g,x,y,M,mu,N,Ntheta,Nz);
 	wrapadj<<<GS3d2, BS3d,0,s>>>(fde,N,Nz,M);

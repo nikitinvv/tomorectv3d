@@ -13,12 +13,12 @@ if __name__ == "__main__":
     N = 256
     Ntheta = N*3//2    
     Nz = 32
-    center = N/2
+    center = N/2+16
 
     Nzp = 8 # number of slices for simultaneous processing by 1 gpu
     ngpus = 1 # number of gpus to process the data (index 0,1,2,.. are taken)
     lambda0 = 6e-8 # regularization parameter
-    niter = 256 # number of iterations in the Chambolle-Pock algorithm
+    niter = 32 # number of iterations in the Chambolle-Pock algorithm
 
     # read object
     f = -dxchange.read_tiff('chip/delta-chip-256.tiff')[45:45+Nz].copy()   
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     data = np.zeros([Nz,Ntheta,N],dtype='float32',order='C')
     cl.radon_wrap(getp(data),getp(f))    
     #add noise
-    data += np.random.normal(0,np.max(data)/50,data.shape)
+    #sdata += np.random.normal(0,np.max(data)/50,data.shape)
     dxchange.write_tiff_stack(data,'data/data.tiff',overwrite=True)
     # reconstruction with 3d tv
     res = np.zeros([Nz,N,N],dtype='float32',order='C')
