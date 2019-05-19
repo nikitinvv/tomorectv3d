@@ -13,7 +13,7 @@ if __name__ == "__main__":
     N = 256
     Ntheta = N*3//2    
     Nz = 32
-    center = N/2+16
+    center = N/2
 
     Nzp = 8 # number of slices for simultaneous processing by 1 gpu
     ngpus = 1 # number of gpus to process the data (index 0,1,2,.. are taken)
