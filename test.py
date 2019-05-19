@@ -37,7 +37,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTSTP, signal_handler)
     
     # generate data
-    data = np.zeros([Ntheta,Nz,N],dtype='float32',order='C')
+    data = np.zeros([Nz,Ntheta,N],dtype='float32',order='C')
     cl.radon_wrap(getp(data),getp(f))    
     #add noise
     data += np.random.normal(0,np.max(data)/50,data.shape)
