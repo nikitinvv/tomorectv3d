@@ -163,9 +163,11 @@ void tomorectv3d::updateft(float* ftn, float* fn, float* f, int igpu, cudaStream
 void tomorectv3d::itertvR(float *fres, float *g_, size_t niter)
 {
 	// compatibility with tomopy
-	for (int i=0;i<Nz;i++)
-		for (int j=0;j<Ntheta;j++)
-			cudaMemcpy(&g[(i*Ntheta+j)*N],&g_[(j*Nz+i)*N],N*sizeof(float),cudaMemcpyHostToHost);	    	
+	// for (int i=0;i<Nz;i++)
+	// 	for (int j=0;j<Ntheta;j++)
+	// 		cudaMemcpy(&g[(i*Ntheta+j)*N],&g_[(j*Nz+i)*N],N*sizeof(float),cudaMemcpyHostToHost);	    	
+	cudaMemcpy(g,g_,Nz*Ntheta*N*sizeof(float),cudaMemcpyHostToHost);	    	
+	cudaMemcpy(f,fres,N*N*Nz*sizeof(float),cudaMemcpyHostToHost);
 	cudaMemcpy(ft,f,N*N*Nz*sizeof(float),cudaMemcpyHostToHost);
 	cudaMemcpy(fn,f,N*N*Nz*sizeof(float),cudaMemcpyHostToHost);
 	cudaMemcpy(ftn,f,N*N*Nz*sizeof(float),cudaMemcpyHostToHost);	
