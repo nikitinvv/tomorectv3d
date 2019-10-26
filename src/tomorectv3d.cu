@@ -3,7 +3,7 @@
 #include "tomorectv3d.cuh"
 #include "kernels.cuh"
 
-tomorectv3d::tomorectv3d(size_t N_, size_t Ntheta_, size_t Nz_, size_t Nzp_, size_t ngpus_, float center_, float lambda_)
+tomorectv3d::tomorectv3d(size_t N_, size_t Ntheta_, size_t Nz_, size_t Nzp_, size_t method_, size_t ngpus_, float center_, float lambda_)
 {
 	N = N_;
 	Ntheta = Ntheta_;	
@@ -13,6 +13,7 @@ tomorectv3d::tomorectv3d(size_t N_, size_t Ntheta_, size_t Nz_, size_t Nzp_, siz
 	center = center_;
 	ngpus = min(ngpus_,(size_t)(Nz/Nzp));
 	tau=1/sqrt(2+(Nz!=0)); 
+	method = method_;
 	omp_set_num_threads(ngpus);	
 	//Managed memory on GPU	
 	cudaMallocManaged((void**)&f,N*N*Nz*sizeof(float));
@@ -144,12 +145,18 @@ void tomorectv3d::divergent(float* fn, float* f, float3* h2, int igpu, cudaStrea
 	div<<<GS3d0,BS3d,0,s>>>(fn,f,h2,tau,N,Nzp);	   
 }
 
-void tomorectv3d::prox(float* h1, float3* h2, float* g, int igpu, cudaStream_t s)
+void tomorectv3d::prox(float* h1, float3* h2, float* g, int method, int igpu, cudaStream_t s)
 {
 	dim3 BS3d(32,32,1);
 	dim3 GS3d0(ceil((N+1)/(float)BS3d.x),ceil((N+1)/(float)BS3d.y),ceil((Nzp+1)/(float)BS3d.z));    
 	dim3 GS3d1(ceil(N/(float)BS3d.x),ceil(Ntheta/(float)BS3d.y),ceil(Nzp/(float)BS3d.z));
-	prox1<<<GS3d1,BS3d,0,s>>>(h1,g,tau,N,Ntheta,Nzp);
+	
+	if (method==0)
+		prox1tv<<<GS3d1,BS3d,0,s>>>(h1,g,tau,N,Ntheta,Nzp);
+	if (method==1)
+		prox1tve<<<GS3d1,BS3d,0,s>>>(h1,g,tau,N,Ntheta,Nzp);
+	if (method==2)
+		prox1tvl1<<<GS3d1,BS3d,0,s>>>(h1,g,tau,N,Ntheta,Nzp);		
 	prox2<<<GS3d0,BS3d,0,s>>>(h2,lambda,N+1,Nzp+1);
 }
 
@@ -222,7 +229,7 @@ void tomorectv3d::itertvR(float *fres, float *g_, size_t niter)
 				gradient(h20,ft0,iz,igpu,s1);//iz for border control
 				radon(h10,ft0,igpu,s1);
 				//proximal
-				prox(h10,h20,g0,igpu,s1);
+				prox(h10,h20,g0,method,igpu,s1);
 				//backward step
 				divergent(fn0,f0,h20,igpu,s1);
 				radonadj(fn0,h10,igpu,s1);                     
@@ -285,7 +292,7 @@ void tomorectv3d::itertvR(float *fres, float *g_, size_t niter)
 				float* tmp=0;
 				tmp=ft;ft=ftn;ftn=tmp;
 				tmp=f;f=fn;fn=tmp;
-				fprintf(stderr,"iterations (%d/%d) \r",iter, niter); fflush(stdout);
+				fprintf(stderr,"iterations (%d/%d) \n",iter, niter); fflush(stdout);
 
 			}
 		}

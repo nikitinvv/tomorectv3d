@@ -184,7 +184,7 @@ void __global__ taketheta(float* theta, int Ntheta)
 }
 
 
-__global__ void prox1(float *h1, float *g, float sigma, int N, int Ntheta, int Nz)
+__global__ void prox1tv(float *h1, float *g, float sigma, int N, int Ntheta, int Nz)
 {
         int tx = blockIdx.x*blockDim.x + threadIdx.x;
         int ty = blockIdx.y*blockDim.y + threadIdx.y;
@@ -193,6 +193,32 @@ __global__ void prox1(float *h1, float *g, float sigma, int N, int Ntheta, int N
 
         int id0 = tx+ty*N+tz*N*Ntheta;
         h1[id0] = (h1[id0]-sigma*g[id0])/(1+sigma);
+}
+
+__global__ void prox1tve(float *h1, float *g, float sigma, int N, int Ntheta, int Nz)
+{
+        int tx = blockIdx.x*blockDim.x + threadIdx.x;
+        int ty = blockIdx.y*blockDim.y + threadIdx.y;
+        int tz = blockIdx.z*blockDim.z + threadIdx.z;
+        if(tx>=N||ty>=Ntheta||tz>=Nz) return;
+
+	int id0 = tx+ty*N+tz*N*Ntheta;
+	float tmp = 0.5*(h1[id0] - 1 + sqrt((h1[id0]-1)*(h1[id0]-1)+4*sigma*g[id0]));	
+        h1[id0] -= tmp;
+}
+
+__global__ void prox1tvl1(float *h1, float *g, float sigma, int N, int Ntheta, int Nz)
+{
+        int tx = blockIdx.x*blockDim.x + threadIdx.x;
+        int ty = blockIdx.y*blockDim.y + threadIdx.y;
+        int tz = blockIdx.z*blockDim.z + threadIdx.z;
+        if(tx>=N||ty>=Ntheta||tz>=Nz) return;
+
+	int id0 = tx+ty*N+tz*N*Ntheta;
+	float tmp = h1[id0]-sigma*g[id0];
+	float tmp2 = abs(tmp)-1;
+	tmp2 = tmp2<0?0:tmp2;
+        h1[id0] = tmp - tmp2*(tmp>0?1:-1);
 }
 
 __global__ void prox2(float3 *h2,float lambda, int N, int Nz)

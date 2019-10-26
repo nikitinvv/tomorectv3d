@@ -8,6 +8,7 @@ class tomorectv3d
 	size_t Ntheta;	
 	size_t Nz;
 	size_t Nzp;	
+	size_t method;
 	float tau;
 	float lambda;
 	float center;
@@ -39,11 +40,11 @@ class tomorectv3d
 	void radonadj(float *f, float* g, int igpu, cudaStream_t s);
 	void gradient(float3 *g, float* f, int iz, int igpu, cudaStream_t s);
 	void divergent(float *fn, float* f, float3* g, int igpu, cudaStream_t s);	
-	void prox(float *h1, float3* h2, float *g, int igpu, cudaStream_t s);	
+	void prox(float *h1, float3* h2, float *g, int method, int igpu, cudaStream_t s);	
 	void updateft(float* ftn, float* fn, float* f, int igpu, cudaStream_t s);	
     
   public:
-	tomorectv3d(size_t N, size_t Ntheta, size_t Nz, size_t Nzp, 
+	tomorectv3d(size_t N, size_t Ntheta, size_t Nz, size_t Nzp, size_t method_,
 		  size_t ngpus, float center, float lambda);
 	~tomorectv3d();
 	void itertvR(float *fres,float *g, size_t niter);
