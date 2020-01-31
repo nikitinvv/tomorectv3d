@@ -1,0 +1,9 @@
+README.md
+setup.py
+_skbuild/linux-x86_64-3.7/cmake-install/src/tomorectv3d/_tomorectv.so
+_skbuild/linux-x86_64-3.7/cmake-install/src/tomorectv3d/tomorectv.py
+src/tomorectv3d.egg-info/PKG-INFO
+src/tomorectv3d.egg-info/SOURCES.txt
+src/tomorectv3d.egg-info/dependency_links.txt
+src/tomorectv3d.egg-info/not-zip-safe
+src/tomorectv3d.egg-info/top_level.txt

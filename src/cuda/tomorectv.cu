@@ -1,19 +1,13 @@
 #include <stdio.h>
 #include <omp.h>
-#include "tomorectv3d.cuh"
+#include "tomorectv.cuh"
 #include "kernels.cuh"
 
-tomorectv3d::tomorectv3d(size_t N_, size_t Ntheta_, size_t Nz_, size_t Nzp_, size_t method_, size_t ngpus_, float center_, float lambda_)
-{
-	N = N_;
-	Ntheta = Ntheta_;	
-	Nz = Nz_;
-	Nzp = Nzp_;	
-	lambda = lambda_;	
-	center = center_;
-	ngpus = min(ngpus_,(size_t)(Nz/Nzp));
+tomorectv::tomorectv(size_t N, size_t Ntheta, size_t Nz, size_t Nzp, size_t method, size_t ngpus, float center, float lambda)
+	:N(N), Ntheta(Ntheta), Nz(Nz), Nzp(Nzp), method(method), ngpus(ngpus), center(center), lambda(lambda)
+{	
+	ngpus = min(ngpus,(size_t)(Nz/Nzp));
 	tau=1/sqrt(2+(Nz!=0)); 
-	method = method_;
 	omp_set_num_threads(ngpus);	
 	//Managed memory on GPU	
 	cudaMallocManaged((void**)&f,N*N*Nz*sizeof(float));
@@ -51,8 +45,11 @@ tomorectv3d::tomorectv3d(size_t N_, size_t Ntheta_, size_t Nz_, size_t Nzp_, siz
 	cudaDeviceSynchronize();
 }
 
-tomorectv3d::~tomorectv3d()
-{
+tomorectv::~tomorectv(){ free(); }
+
+void tomorectv::free()
+{ 
+	if (!is_free) {	
 	cudaFree(f);
 	cudaFree(fn);
 	cudaFree(ft);
@@ -71,11 +68,13 @@ tomorectv3d::~tomorectv3d()
 		cudaFree(theta[igpu]);
 		cudaDeviceReset();
 	}	    
+	is_free = true;
+	}
 }
 
 
 
-void tomorectv3d::radon(float *g, float* f, int igpu, cudaStream_t s)
+void tomorectv::radon(float *g, float* f, int igpu, cudaStream_t s)
 {
 	//tmp arrays on gpus
 	float2* ftmp0=(float2*)ftmp[igpu];
@@ -96,7 +95,7 @@ void tomorectv3d::radon(float *g, float* f, int igpu, cudaStream_t s)
 }
 
 
-void tomorectv3d::radonadj(float *f, float* g, int igpu, cudaStream_t s)
+void tomorectv::radonadj(float *f, float* g, int igpu, cudaStream_t s)
 {
 	//tmp arrays on gpus
 	float2* ftmp0=(float2*)ftmp[igpu];
@@ -128,7 +127,7 @@ void tomorectv3d::radonadj(float *f, float* g, int igpu, cudaStream_t s)
 	addf<<<GS3d0,BS3d,0,s>>>(f,ftmps0,tau,N,Nzp);
 }
 
-void tomorectv3d::gradient(float3* h2, float* ft, int iz, int igpu, cudaStream_t s)
+void tomorectv::gradient(float3* h2, float* ft, int iz, int igpu, cudaStream_t s)
 {
 	dim3 BS3d(32,32,1);
 	dim3 GS3d0(ceil((N+2)/(float)BS3d.x),ceil((N+2)/(float)BS3d.y),ceil((Nzp+2)/(float)BS3d.z));    
@@ -138,14 +137,14 @@ void tomorectv3d::gradient(float3* h2, float* ft, int iz, int igpu, cudaStream_t
 	grad<<<GS3d0,BS3d,0,s>>>(h2,ftmp0,tau,N+1,Nzp+1);	            
 }
 
-void tomorectv3d::divergent(float* fn, float* f, float3* h2, int igpu, cudaStream_t s)
+void tomorectv::divergent(float* fn, float* f, float3* h2, int igpu, cudaStream_t s)
 {
 	dim3 BS3d(32,32,1);
 	dim3 GS3d0(ceil(N/(float)BS3d.x),ceil(N/(float)BS3d.y),ceil(Nzp/(float)BS3d.z));    
 	div<<<GS3d0,BS3d,0,s>>>(fn,f,h2,tau,N,Nzp);	   
 }
 
-void tomorectv3d::prox(float* h1, float3* h2, float* g, int method, int igpu, cudaStream_t s)
+void tomorectv::prox(float* h1, float3* h2, float* g, int method, int igpu, cudaStream_t s)
 {
 	dim3 BS3d(32,32,1);
 	dim3 GS3d0(ceil((N+1)/(float)BS3d.x),ceil((N+1)/(float)BS3d.y),ceil((Nzp+1)/(float)BS3d.z));    
@@ -160,14 +159,14 @@ void tomorectv3d::prox(float* h1, float3* h2, float* g, int method, int igpu, cu
 	prox2<<<GS3d0,BS3d,0,s>>>(h2,lambda,N+1,Nzp+1);
 }
 
-void tomorectv3d::updateft(float* ftn, float* fn, float* f, int igpu, cudaStream_t s)
+void tomorectv::updateft(float* ftn, float* fn, float* f, int igpu, cudaStream_t s)
 {
 	dim3 BS3d(32,32,1);
 	dim3 GS3d0(ceil(N/(float)BS3d.x),ceil(N/(float)BS3d.y),ceil(Nzp/(float)BS3d.z));    	
 	updateft_ker<<<GS3d0,BS3d,0,s>>>(ftn,fn,f,N,Nzp);	
 }
 
-void tomorectv3d::itertvR(float *fres, float *g_, size_t niter)
+void tomorectv::itertvR(float *fres, float *g_, size_t niter)
 {
 	// compatibility with tomopy
 	// for (int i=0;i<Nz;i++)
@@ -308,7 +307,7 @@ void tomorectv3d::itertvR(float *fres, float *g_, size_t niter)
 }
 
 
-void tomorectv3d::radonmany(float *gres_, float *f_)
+void tomorectv::radonmany(float *gres_, float *f_)
 {
 	cudaMemcpy(f,f_,N*N*Nz*sizeof(float),cudaMemcpyHostToHost);	    
 	cudaMemcpy(ft,f,N*N*Nz*sizeof(float),cudaMemcpyHostToHost);
@@ -427,7 +426,7 @@ void tomorectv3d::radonmany(float *gres_, float *f_)
 }
 
 
-void tomorectv3d::radonmanyadj(float *fres_, float *g_)
+void tomorectv::radonmanyadj(float *fres_, float *g_)
 {
 	cudaMemcpy(g,g_,N*Ntheta*Nz*sizeof(float),cudaMemcpyHostToHost);	    
 	memset(f,0,N*N*Nz*sizeof(float));
@@ -552,7 +551,7 @@ void tomorectv3d::radonmanyadj(float *fres_, float *g_)
 }
 
 
-void tomorectv3d::settheta(size_t theta_)
+void tomorectv::settheta(size_t theta_)
 {
 	for (int igpu=0;igpu<ngpus;igpu++)
 	{
@@ -561,17 +560,17 @@ void tomorectv3d::settheta(size_t theta_)
 	}
 }
 
-void tomorectv3d::itertvR_wrap(size_t fres, size_t g, size_t niter)
+void tomorectv::itertvR_wrap(size_t fres, size_t g, size_t niter)
 {
 	itertvR((float*)fres,(float*)g,niter);
 }
 
-void tomorectv3d::radon_wrap(size_t gres, size_t f)
+void tomorectv::radon_wrap(size_t gres, size_t f)
 {
 	radonmany((float*)gres,(float*)f);
 }
 
-void tomorectv3d::radonadj_wrap(size_t fres, size_t g)
+void tomorectv::radonadj_wrap(size_t fres, size_t g)
 {
 	radonmanyadj((float*)fres,(float*)g);
 }
