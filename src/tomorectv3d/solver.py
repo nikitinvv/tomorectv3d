@@ -33,8 +33,9 @@ class Solver(tomorectv):
     def settheta(self, theta):
         super().settheta(getp(theta))
 
-    def radon(self, data, f):
-        super().radon_wrap(getp(np.array(data,order='C')), getp(np.array(f,order='C')))
+    def radon(self, data, f):        
+        super().radon_wrap(getp(data), getp(f))        
 
     def itertvR(self, res, data, niter):
-        super().itertvR_wrap(getp(np.array(res,order='C')), getp(np.array(data,order='C')), niter)
+        super().itertvR_wrap(getp(res), getp(data), niter)
+        

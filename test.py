@@ -13,7 +13,7 @@ if __name__ == "__main__":
     center = N/2
 
     Nzp = 8  # number of slices for simultaneous processing by 1 gpu
-    ngpus = 1  # number of gpus to process the data (index 0,1,2,.. are taken)
+    ngpus = 2  # number of gpus to process the data (index 0,1,2,.. are taken)
     lambda0 = 6e-8  # regularization parameter
     niter = 32  # number of iterations in the Chambolle-Pock algorithm
     method = 0
@@ -29,6 +29,7 @@ if __name__ == "__main__":
         # generate data
         data = np.zeros([Nz, Ntheta, N], dtype='float32', order='C')
         cl.radon(data, f)
+        print(np.linalg.norm(data))
         # add noise
         #sdata += np.random.normal(0,np.max(data)/50,data.shape)
         dxchange.write_tiff_stack(data, 'data/data.tiff', overwrite=True)
@@ -39,6 +40,7 @@ if __name__ == "__main__":
 
     # error
     print('L2 error:', np.linalg.norm(f-res)/np.linalg.norm(f))
+    print(np.linalg.norm(res))
 
     # gres = np.zeros([Ntheta,Nz,N],dtype='float32',order='C')
     # ggres = np.zeros([Ntheta,Nz,N],dtype='float32',order='C')
