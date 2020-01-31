@@ -13,7 +13,7 @@ if __name__ == "__main__":
     center = N/2
 
     Nzp = 8  # number of slices for simultaneous processing by 1 gpu
-    ngpus = 2  # number of gpus to process the data (index 0,1,2,.. are taken)
+    ngpus = 4  # number of gpus to process the data (index 0,1,2,.. are taken)
     lambda0 = 6e-8  # regularization parameter
     niter = 32  # number of iterations in the Chambolle-Pock algorithm
     method = 0
